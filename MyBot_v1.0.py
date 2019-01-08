@@ -1,11 +1,15 @@
+# Initial imports are specific to the Halite game system
 # Import the Halite SDK, which will let you interact with the game.
 import hlt
+# This library contains constant values.
 from hlt import constants
 
 # This library contains direction metadata to better interface with the game.
 from hlt import positionals
 from hlt.positionals import Direction, Position
 from hlt.game_map import Player
+# Import custom functions for mapping halite in the game, calculating the distances on the board, and
+# new efficient navigation functions 
 from hlt.optimizers import map_halite, dist_to_cells, dist_to_shipyard, costly_navigate, navigate, map_halite_sq
 from hlt.deposit import side_or_side
 
@@ -101,62 +105,65 @@ while True:
 
         # Master branch of what the ship should do
 
-
-        # Return to shipyard without collisions (follow up)
+        # Return to shipyard without collisions if ship is marked for return (to deposit Halite resource)
         if ship.id in ships_return:
             next_step, waiting[ship.id], costly_pos[ship.id] = navigate(ship, me.shipyard.position, game_map, waiting[ship.id], costly_pos[ship.id])
-            # previous_pos[ship.id] = ship.position
+            ## previous_pos[ship.id] = ship.position
             command_queue.append(
                 ship.move(
                     next_step))
 
-
-
-        # Decide whether to return to shipyard
-        elif ship.halite_amount > deposit_level :#and ship.id not in ships_return: # or returning[ship.id] == True:
+        # Decide whether to return to shipyard based on stored Halite (empircally chosen amount)
+        elif ship.halite_amount > deposit_level :
+            # if the ship position still has Halite left to be mined, remove it from the 'mined positions' so that other 
+            # nearby ships won't be prevented from mining there
             if game_map[ship.position].halite_amount > low_halite and (ship.position.x, ship.position.y) in mined_positions:
-                mined_positions.remove((ship.position.x, ship.position.y))
-            # if game_map.calculate_distance(ship.position, me.shipyard.position) > (total_turns - game.turn_number - 5):
-            #     attack[ship.id] = 1
+                mined_positions.remove((ship.position.x, ship.position.y))            
+            #mark ship for return (will be used following turn)
             ships_return.append(ship.id)
-            ship_goal[ship.id] = me.shipyard.position
+            ship_goal[ship.id] = me.shipyard.position   # used for mining, declared here to avoid error
             next_step, waiting[ship.id], costly_pos[ship.id] = navigate(ship, me.shipyard.position, game_map, waiting[ship.id], costly_pos[ship.id])
-            # previous_pos[ship.id] = ship.position
+            ## previous_pos[ship.id] = ship.position
             command_queue.append(
                 ship.move(
                     next_step))
 
-        # return near end of game and go away
-        elif game_map.calculate_distance(ship.position, me.shipyard.position) > (total_turns - game.turn_number - 5) and returning[ship.id] == False and ship.halite_amount > deposit_level/3:
+        # "end game" mechanic to recover mined Halite before time is up
+        # return ship and then send the ship away
+        elif game_map.calculate_distance(ship.position, me.shipyard.position) > (total_turns - game.turn_number - 5) 
+            and returning[ship.id] == False 
+            and ship.halite_amount > deposit_level/3:
             if game_map[ship.position].halite_amount > low_halite and (ship.position.x, ship.position.y) in mined_positions:
                 mined_positions.remove((ship.position.x, ship.position.y))
             ships_return.append(ship.id)
             returning[ship.id] = True
             ship_goal[ship.id] = me.shipyard.position
             next_step, waiting[ship.id], costly_pos[ship.id] = navigate(ship, me.shipyard.position, game_map, waiting[ship.id], costly_pos[ship.id])
-            # previous_pos[ship.id] = ship.position
+            ## previous_pos[ship.id] = ship.position
             command_queue.append(
                 ship.move(
                     next_step))
 
 
-        #if the ship is at its goal and is it's still worth mining, stay and mine
+        # if the ship is at its goal and is it's still worth mining, stay and mine
         elif ship.position == ship_goal[ship.id] and game_map[ship.position].halite_amount > low_halite:
             command_queue.append(ship.stay_still())
 
         # find the 'best' location to mine and travel to it, adding it as a goal
-        # elif game_map[ship.position].halite_amount < low_halite:
+        ## elif game_map[ship.position].halite_amount < low_halite:
         elif ship_goal[ship.id] == me.shipyard.position or (ship.position == ship_goal[ship.id] and game_map[ship.position].halite_amount < low_halite):
 
             cell_halite = map_halite(dimension, game_map, 10)
             if np.min(cell_halite) < low_halite:
+                # adjust 'low_halite' variable if hard-coded value is no longer valid due to channging environment of game
                 low_halite = 0.55*np.median(cell_halite)
 
             dist_halite = dist_to_cells(dimension, ship.position, game_map)
-
+            # assign a value to each map square based on the Halite amount present, and the distance from the ship to 
+            # the mining position and back to the shipyard for dropoff (farther away from the ship is more costly to travel to,
+            # and the farther back to the shipyard the less Halite is returned, also due to travel costs)
             cell_value = cell_halite / dist_halite + ((cell_halite) / dist_shipyard)
             cell_value = np.nan_to_num(cell_value)
-
 
             for n in range(total_ships + len(mined_positions)):
                 goal_x, goal_y = np.unravel_index(cell_value.argmax(), cell_value.shape)
@@ -174,9 +181,11 @@ while True:
                     # plt.show()
 
                     break
+                # if the position is not desirable, assign its value to 0, loop through to the next viable location
                 cell_value[goal_x, goal_y] = 0
 
             else:
+                # the code should never enter into this condition 
                 logging.info(" This part of the code is broken")
 
         # if the ship has a destination, continue on to it
@@ -187,7 +196,7 @@ while True:
                 ship.move(
                     next_step))
 
-        else: # stay put and mine
+        else: # stay put and mine (fall back command)
             command_queue.append(ship.stay_still())
 
 
