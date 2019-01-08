@@ -1,3 +1,6 @@
+#!/usr/bin/env python3
+# Python 3.6
+
 # Initial imports are specific to the Halite game system
 # Import the Halite SDK, which will let you interact with the game.
 import hlt

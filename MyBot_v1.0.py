@@ -1,3 +1,6 @@
+#!/usr/bin/env python3
+# Python 3.6
+
 # Initial imports are specific to the Halite game system
 # Import the Halite SDK, which will let you interact with the game.
 import hlt
@@ -130,9 +133,7 @@ while True:
 
         # "end game" mechanic to recover mined Halite before time is up
         # return ship and then send the ship away
-        elif game_map.calculate_distance(ship.position, me.shipyard.position) > (total_turns - game.turn_number - 5) 
-            and returning[ship.id] == False 
-            and ship.halite_amount > deposit_level/3:
+        elif game_map.calculate_distance(ship.position, me.shipyard.position) > (total_turns - game.turn_number - 5) and returning[ship.id] == False and ship.halite_amount > deposit_level/3:
             if game_map[ship.position].halite_amount > low_halite and (ship.position.x, ship.position.y) in mined_positions:
                 mined_positions.remove((ship.position.x, ship.position.y))
             ships_return.append(ship.id)
