@@ -42,14 +42,7 @@ def dist_to_cells(dimension, ship, game_map):
     return(a)
 
 def costly_navigate(ship, destination, game_map, prev_pos):
-    """
-    Returns a singular safe move towards the destination.
 
-    :param ship: The ship to move.
-    :param destination: Ending position
-    :return: A direction.
-    """
-    # Still need to account for moving back to stuck position
     costly_dir = []
 
     for direction in game_map.get_unsafe_moves(ship.position, destination):
