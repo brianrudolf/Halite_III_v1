@@ -1,3 +1,4 @@
+Taken from [Halite.io](Halite.io) starter bot [download page](https://halite.io/learn-programming-challenge/downloads). 
 # Starter Kit
 
 ## Halite III starter kit components
